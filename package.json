@@ -1,0 +1,9 @@
+{
+  "name": "bocao-print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Agente local que imprime comandas y facturas de Boca'o en la impresora térmica del restaurante.",
+  "scripts": {
+    "start": "node agent.js"
+  }
+}
