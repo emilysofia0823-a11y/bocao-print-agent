@@ -3,38 +3,42 @@ AGENTE DE IMPRESIÓN — BOCA'O
 
 Este programa hace que las comandas y facturas que se generan en pos.html
 y cocina.html se impriman automáticamente en la impresora térmica del
-restaurante, sin importar desde qué computador o celular se esté usando
-el sistema.
+restaurante (Xprinter XP-58, conectada por USB), sin importar desde qué
+computador o celular se esté usando el sistema.
 
 REQUISITOS
 ----------
-- Un computador (Windows) en el restaurante, conectado a la MISMA red
-  WiFi que la impresora térmica, y que se pueda dejar encendido durante
-  el horario de atención.
+- El computador del restaurante donde está conectada por USB la
+  impresora XP-58, y se pueda dejar encendido durante el horario de
+  atención.
 - Tener Node.js instalado en ese computador. Si no lo tienes, descárgalo
   gratis de https://nodejs.org (la versión "LTS").
+- El driver de la Xprinter XP-58 instalado en Windows (Configuración →
+  Bluetooth y dispositivos → Impresoras y escáneres — debe aparecer
+  "XP-58" en la lista).
+- La impresora XP-58 debe estar COMPARTIDA en Windows con el nombre
+  exacto "XP-58":
+    1. Panel de Control → Dispositivos e impresoras
+    2. Clic derecho en XP-58 → Propiedades de impresora → pestaña "Compartir"
+    3. Marcar "Compartir esta impresora", nombre de recurso compartido: XP-58
+    4. Guardar
 
 INSTALACIÓN (una sola vez)
 ---------------------------
 1. Copia toda esta carpeta "print-agent" al computador del restaurante.
-2. Abre el archivo "config.json" con el Bloc de notas.
-3. Cambia "PRINTER_IP" por la IP real de tu impresora térmica
-   (la encuentras en la configuración de red de la impresora, o
-   imprimiendo su "página de prueba" desde el menú de la impresora).
-   Ejemplo: "PRINTER_IP": "192.168.1.50"
-4. Guarda el archivo.
+2. Confirma que config.json diga "WINDOWS_PRINTER_NAME": "XP-58"
+   (si tu impresora quedó instalada con otro nombre en Windows, cámbialo
+   aquí para que coincida exactamente).
 
 USO DIARIO
 ----------
 - Haz doble clic en "iniciar.bat" al abrir el restaurante.
 - Va a aparecer una ventana negra (la consola) — NO LA CIERRES mientras
-  el restaurante esté abierto. Ahí es donde el programa está corriendo
-  y revisando si hay comandas/facturas para imprimir.
+  el restaurante esté abierto.
 - Cuando cierres el restaurante, simplemente cierra esa ventana.
 
 INICIO AUTOMÁTICO CON WINDOWS (opcional, recomendado)
 -------------------------------------------------------
-Para que el agente arranque solo cuando enciendas el computador:
 1. Presiona Windows + R, escribe "shell:startup" y da Enter.
 2. Se abre una carpeta. Copia ahí un acceso directo de "iniciar.bat".
 3. Listo — cada vez que enciendas el computador, el agente arranca solo.
@@ -43,12 +47,13 @@ Para que el agente arranque solo cuando enciendas el computador:
 --------------------------------
 En la ventana negra vas a ver mensajes como:
   "Agente de impresión Boca'o iniciado."
-  "Impresora configurada en 192.168.1.50:9100"
+  "Impresora configurada: "XP-58" (compartida como \\localhost\XP-58)"
 Y cada vez que llegue un trabajo:
   "Imprimiendo comanda #905..."
   "  -> impreso OK"
 
-Si ves errores de conexión a la impresora, revisa que:
-- La IP en config.json sea la correcta.
-- El computador y la impresora estén en la misma red WiFi.
-- La impresora esté encendida y conectada a la red.
+Si ves errores, revisa que:
+- El nombre en config.json coincida EXACTAMENTE con el nombre de la
+  impresora en Windows (mayúsculas/guiones incluidos).
+- La impresora esté compartida (paso de arriba).
+- La impresora esté encendida y conectada por USB.
