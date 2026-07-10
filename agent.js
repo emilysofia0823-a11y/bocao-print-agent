@@ -1,12 +1,14 @@
 // Agente de impresión local — Boca'o
-// Corre en un computador conectado a la MISMA red que la impresora térmica.
-// Revisa Firebase cada 3 segundos por trabajos de impresión pendientes
-// (comandas y facturas encoladas desde pos.html / cocina.html) y los manda
-// directo a la impresora por su IP (puerto 9100, protocolo ESC/POS crudo).
+// Corre en el computador donde está instalada (por USB) la impresora térmica,
+// con su driver ya instalado en Windows. Revisa Firebase cada 3 segundos por
+// trabajos de impresión pendientes (comandas y facturas encoladas desde
+// pos.html / cocina.html) y los manda directo a la impresora por su nombre
+// de Windows (protocolo ESC/POS crudo, vía "copy /b" al recurso compartido).
 
-const net = require('net');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { exec } = require('child_process');
 
 const FIREBASE_PROJECT_ID = 'e703-18361';
 const FIREBASE_API_KEY = 'AIzaSyB7fkzZNNNY5oWt5oSAT-2wSwtJh69TKvs';
@@ -19,9 +21,9 @@ try {
   console.error('No se pudo leer config.json. Debe estar en la misma carpeta que agent.js');
   process.exit(1);
 }
-if (!config.PRINTER_IP || config.PRINTER_IP === '192.168.1.50') {
-  console.error('⚠️  Abre config.json y pon la IP real de tu impresora en "PRINTER_IP".');
-  console.error('   (Valor actual: ' + config.PRINTER_IP + ' — parece ser el de ejemplo)');
+if (!config.WINDOWS_PRINTER_NAME) {
+  console.error('⚠️  Abre config.json y pon el nombre de la impresora en "WINDOWS_PRINTER_NAME" (ej: "XP-58").');
+  process.exit(1);
 }
 
 // ── Utilidades de texto ──
@@ -51,7 +53,7 @@ function corte() { return '\n\n\n' + GS + 'V' + '\x01'; }
 
 // ── Construcción del ticket ──
 function buildTicket(job) {
-  var ANCHO = config.ANCHO || 42;
+  var ANCHO = config.ANCHO || 32; // XP-58 = 58mm, ~32 caracteres por línea
   var out = init();
   out += centrar() + negritaOn() + grande();
   out += quitarAcentos("BOCA'O FAST FOOD") + '\n';
@@ -140,17 +142,20 @@ async function marcarImpreso(id) {
   });
 }
 
-// ── Envío a la impresora (TCP crudo, puerto 9100) ──
+// ── Envío a la impresora (nombre de Windows, compartida localmente) ──
 function enviarAImpresora(bytes) {
   return new Promise(function (resolve, reject) {
-    var socket = new net.Socket();
-    socket.setTimeout(5000);
-    socket.connect(config.PRINTER_PORT || 9100, config.PRINTER_IP, function () {
-      socket.write(bytes, function () { socket.end(); });
+    var tmpFile = path.join(os.tmpdir(), 'bocao_ticket_' + Date.now() + '.bin');
+    fs.writeFile(tmpFile, bytes, function (err) {
+      if (err) return reject(err);
+      var destino = '\\\\localhost\\' + config.WINDOWS_PRINTER_NAME;
+      var cmd = 'cmd /c copy /b "' + tmpFile + '" "' + destino + '"';
+      exec(cmd, function (err2) {
+        fs.unlink(tmpFile, function () {});
+        if (err2) return reject(err2);
+        resolve();
+      });
     });
-    socket.on('close', function () { resolve(); });
-    socket.on('timeout', function () { socket.destroy(); reject(new Error('Timeout conectando a la impresora')); });
-    socket.on('error', function (err) { reject(err); });
   });
 }
 
@@ -177,7 +182,7 @@ async function revisarCola() {
 }
 
 console.log("Agente de impresión Boca'o iniciado.");
-console.log('Impresora configurada en ' + config.PRINTER_IP + ':' + (config.PRINTER_PORT || 9100));
+console.log('Impresora configurada: "' + config.WINDOWS_PRINTER_NAME + '" (compartida como \\\\localhost\\' + config.WINDOWS_PRINTER_NAME + ')');
 console.log('Revisando trabajos pendientes cada 3 segundos... (deja esta ventana abierta)');
 setInterval(revisarCola, 3000);
 revisarCola();
